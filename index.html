@@ -34,7 +34,18 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body { background: var(--c-bg); color: var(--c-text); font-family: var(--font-ui); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+    body { background: var(--c-bg); color: var(--c-text); font-family: var(--font-ui); margin: 0; overflow: hidden; }
+    
+    /* --- ESTILOS DEL LOGIN --- */
+    .auth-overlay { position: fixed; inset: 0; background: var(--c-bg); display: flex; align-items: center; justify-content: center; z-index: 9999; flex-direction: column; }
+    .auth-box { background: var(--c-surface); border: 1px solid var(--c-border); padding: 32px; border-radius: var(--radius-lg); width: 100%; max-width: 340px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.8); }
+    .auth-logo { font-size: 28px; font-weight: 800; color: var(--c-accent); margin-bottom: 8px; letter-spacing: -1px; }
+    .auth-logo span { color: var(--c-text); font-weight: 400; }
+    .auth-desc { font-size: 12px; color: #7b7f8e; margin-bottom: 24px; text-transform: uppercase; letter-spacing: 1px; }
+    .auth-error { color: var(--c-red); font-size: 12px; margin-top: 12px; display: none; font-weight: bold; }
+
+    /* --- ESTILOS DE LA APP --- */
+    .app-layout { display: none; height: 100vh; width: 100vw; } /* Oculto por defecto */
     
     .sidebar { width: 400px; background: var(--c-surface); padding: 20px; border-right: 1px solid var(--c-border); display: flex; flex-direction: column; z-index: 1000; box-shadow: 10px 0 30px rgba(0,0,0,0.5); overflow-y: auto; flex-shrink: 0; }
     .sidebar-header { text-align: center; margin-bottom: 20px; }
@@ -104,92 +115,104 @@
 </head>
 <body>
 
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <h1>Ferco<span>Farma</span></h1>
-            <div class="subtitle">Módulo de Administración Global</div>
-        </div>
-        
-        <div class="metrics-grid">
-            <div class="metric-card accent full-width">
-                <div class="metric-val" id="metric-total-ventas">$0</div>
-                <div class="metric-lbl">Total Recaudado</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-val" id="metric-pedidos">0</div>
-                <div class="metric-lbl">Entregas</div>
-            </div>
-            <div class="metric-card green">
-                <div class="metric-val" id="metric-turnos-totales">0</div>
-                <div class="metric-lbl">Turnos</div>
-            </div>
-        </div>
-
-        <button class="btn btn-secondary" style="margin-bottom: 16px;" id="btn-abrir-equipo">👥 Gestionar Equipo (Domis)</button>
-
-        <div class="form-group">
-            <div class="group-title">Rango & Filtros</div>
-            <label>Fecha Inicio</label>
-            <input type="date" id="f-inicio">
+    <div class="auth-overlay" id="auth-screen">
+        <div class="auth-box">
+            <div class="auth-logo">Ferco<span>Farma</span></div>
+            <div class="auth-desc">Panel de Administración</div>
             
-            <label>Fecha Fin</label>
-            <input type="date" id="f-fin">
-
-            <label>Filtrar Domiciliario</label>
-            <select id="f-domi">
-                <option value="TODOS">-- Todos los Domiciliarios --</option>
-            </select>
+            <label style="text-align: left;">Contraseña de Acceso</label>
+            <input type="password" id="input-password" placeholder="Ingresa la credencial..." onkeydown="if(event.key==='Enter') document.getElementById('btn-login').click()">
             
-            <button class="btn btn-primary" id="btn-cargar-datos">Buscar y Procesar</button>
-        </div>
-
-        <div class="form-group">
-            <div class="group-title">Cierre de Caja Operativo</div>
-            <div class="payment-breakdown-list">
-                <div class="payment-row highlight"><span>Efectivo Físico:</span><span id="p-efectivo">$0</span></div>
-                <div class="payment-row"><span>Transferencia:</span><span id="p-transferencia">$0</span></div>
-                <div class="payment-row"><span>Datáfono:</span><span id="p-datafono">$0</span></div>
-                <div class="payment-row"><span>Crédito:</span><span id="p-credito">$0</span></div>
-                <div class="payment-row" style="color: var(--c-info);"><span>Cruce / Garantía:</span><span id="p-garantia">$0</span></div>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <div class="group-title">Liquidación & Monitoreo</div>
-            <button class="btn btn-excel" id="btn-exportar">Exportar Excel de Nómina</button>
-            <button class="btn btn-secondary" style="margin-top: 10px;" id="btn-live-tracking">Monitorear En Vivo</button>
-        </div>
-        
-        <div class="console-box" id="consola-status">Iniciando conexión con Firebase...</div>
-    </div>
-
-    <div class="main-workspace">
-        <div id="map"></div>
-
-        <div class="crud-container">
-            <div class="crud-header">
-                <h2 style="color: white; font-size:16px;">Registro de Entregas</h2>
-                <button class="btn btn-primary" style="width: auto; padding: 6px 14px; font-size: 11px;" id="btn-nuevo-registro">+ Insertar Manual</button>
-            </div>
-            <div class="table-wrapper">
-                <table id="tabla-entregas">
-                    <thead>
-                        <tr><th>Fecha</th><th>Hora</th><th>Domi</th><th>Empresa</th><th>Cliente</th><th>Monto</th><th>Acciones</th></tr>
-                    </thead>
-                    <tbody id="tbody-entregas"><tr><td colspan="7" style="text-align: center; color: #7b7f8e; padding: 20px;">Sin datos cargados.</td></tr></tbody>
-                </table>
-            </div>
+            <button class="btn btn-primary" id="btn-login" style="margin-top: 12px;">Ingresar al Sistema</button>
+            <div class="auth-error" id="auth-error-msg">Credenciales incorrectas. Intenta de nuevo.</div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="modal-equipo">
+    <div class="app-layout" id="app-layout">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>Ferco<span>Farma</span></h1>
+                <div class="subtitle">Módulo de Administración Global</div>
+            </div>
+            
+            <div class="metrics-grid">
+                <div class="metric-card accent full-width">
+                    <div class="metric-val" id="metric-total-ventas">$0</div>
+                    <div class="metric-lbl">Total Recaudado</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-val" id="metric-pedidos">0</div>
+                    <div class="metric-lbl">Entregas</div>
+                </div>
+                <div class="metric-card green">
+                    <div class="metric-val" id="metric-turnos-totales">0</div>
+                    <div class="metric-lbl">Turnos</div>
+                </div>
+            </div>
+
+            <button class="btn btn-secondary" style="margin-bottom: 16px;" id="btn-abrir-equipo">👥 Gestionar Equipo (Domis)</button>
+
+            <div class="form-group">
+                <div class="group-title">Rango & Filtros</div>
+                <label>Fecha Inicio</label>
+                <input type="date" id="f-inicio">
+                
+                <label>Fecha Fin</label>
+                <input type="date" id="f-fin">
+
+                <label>Filtrar Domiciliario</label>
+                <select id="f-domi">
+                    </select>
+                
+                <button class="btn btn-primary" id="btn-cargar-datos">Buscar y Procesar</button>
+            </div>
+
+            <div class="form-group">
+                <div class="group-title">Cierre de Caja Operativo</div>
+                <div class="payment-breakdown-list">
+                    <div class="payment-row highlight"><span>Efectivo Físico:</span><span id="p-efectivo">$0</span></div>
+                    <div class="payment-row"><span>Transferencia:</span><span id="p-transferencia">$0</span></div>
+                    <div class="payment-row"><span>Datáfono:</span><span id="p-datafono">$0</span></div>
+                    <div class="payment-row"><span>Crédito:</span><span id="p-credito">$0</span></div>
+                    <div class="payment-row" style="color: var(--c-info);"><span>Cruce / Garantía:</span><span id="p-garantia">$0</span></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="group-title">Liquidación & Monitoreo</div>
+                <button class="btn btn-excel" id="btn-exportar">Exportar Excel de Nómina</button>
+                <button class="btn btn-secondary" style="margin-top: 10px;" id="btn-live-tracking">Monitorear En Vivo</button>
+            </div>
+            
+            <div class="console-box" id="consola-status">Esperando comandos...</div>
+        </div>
+
+        <div class="main-workspace">
+            <div id="map"></div>
+
+            <div class="crud-container">
+                <div class="crud-header">
+                    <h2 style="color: white; font-size:16px;">Registro de Entregas</h2>
+                    <button class="btn btn-primary" style="width: auto; padding: 6px 14px; font-size: 11px;" id="btn-nuevo-registro">+ Insertar Manual</button>
+                </div>
+                <div class="table-wrapper">
+                    <table id="tabla-entregas">
+                        <thead>
+                            <tr><th>Fecha</th><th>Hora</th><th>Domi</th><th>Empresa</th><th>Cliente</th><th>Monto</th><th>Acciones</th></tr>
+                        </thead>
+                        <tbody id="tbody-entregas"><tr><td colspan="7" style="text-align: center; color: #7b7f8e; padding: 20px;">Utiliza el botón 'Buscar y Procesar' para ver registros.</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div> <div class="modal-overlay" id="modal-equipo">
         <div class="modal-content">
             <div class="group-title">Ajustes de Personal (Base de Datos Central)</div>
             <p style="font-size:12px; color:var(--c-muted); margin-bottom:16px; line-height:1.4;">
                 Añade o elimina nombres. Al guardar, los cambios se reflejarán instantáneamente en la aplicación móvil de los domiciliarios.
             </p>
             <div style="display:flex; gap:8px;">
-                <input type="text" id="input-nuevo-domi" placeholder="Nombre del domiciliario" style="margin-bottom:0;">
+                <input type="text" id="input-nuevo-domi" placeholder="Nombre del domiciliario" style="margin-bottom:0;" onkeydown="if(event.key==='Enter') document.getElementById('btn-add-domi').click()">
                 <button class="btn btn-primary" id="btn-add-domi" style="width:auto; margin-top:0;">Agregar</button>
             </div>
             <ul class="lista-equipo" id="ui-lista-equipo"></ul>
@@ -251,6 +274,10 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
         import { getFirestore, collection, getDocs, doc, addDoc, updateDoc, deleteDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
+        // === CONFIGURACIÓN DE SEGURIDAD ===
+        // Aquí puedes cambiar la contraseña para acceder al panel.
+        const PASSWORD_ADMIN = "Ferco2026"; 
+
         const firebaseConfig = {
             apiKey: "AIzaSyB8Ei-GTiqedjsFy09XVujGb94mzkBmVOU",
             authDomain: "ferco-farma.firebaseapp.com",
@@ -276,17 +303,44 @@
             consola.className = `console-box ${clase}`;
         }
 
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
+        // --- SISTEMA DE LOGIN Y ARRANQUE (UI LOCK) ---
+        document.getElementById('btn-login').onclick = () => {
+            const passValue = document.getElementById('input-password').value;
+            const errorMsg = document.getElementById('auth-error-msg');
+            
+            if (passValue === PASSWORD_ADMIN) {
+                // Contraseña correcta: Oculta el login y muestra la app
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('app-layout').style.display = 'flex';
+                
+                // Forzar pintado inmediato de la lista de emergencia antes de ir a Firebase
+                propagarEquipoASelectores(); 
+                
+                // Ahora sí, conectamos a Firebase (Ahorro de recursos)
+                iniciarConexionFirebase();
+            } else {
+                errorMsg.style.display = 'block';
+                setTimeout(() => errorMsg.style.display = 'none', 3000);
+            }
+        };
 
-        signInAnonymously(auth).then(async (res) => {
-            firebaseUser = res.user;
-            actualizarConsola("Autenticado. Descargando configuración...", "loading");
-            await descargarEquipoConfig();
-            establecerFechasPorDefecto();
-            actualizarConsola("Infraestructura Lista", "success");
-        }).catch(err => { console.error(err); actualizarConsola("Error crítico de autenticación", "error"); });
+        function iniciarConexionFirebase() {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            actualizarConsola("Autenticando y sincronizando con la nube...", "loading");
+            
+            signInAnonymously(auth).then(async (res) => {
+                firebaseUser = res.user;
+                await descargarEquipoConfig();
+                establecerFechasPorDefecto();
+                actualizarConsola("Sistema En Línea y Conectado", "success");
+            }).catch(err => { 
+                console.error(err); 
+                actualizarConsola("Trabajando en modo local (Sin conexión a la nube)", "error"); 
+            });
+        }
 
         function establecerFechasPorDefecto() {
             const hoy = new Date();
@@ -301,13 +355,12 @@
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
                     equipoDinamico = docSnap.data().miembros || equipoDinamico;
+                    propagarEquipoASelectores(); // Repinta con los datos reales de la nube
                 } else {
                     try { await setDoc(docRef, { miembros: equipoDinamico }); } catch(innerE) { console.warn(innerE); }
                 }
             } catch(e) { 
-                console.warn("Usando matriz de equipo local", e); 
-            } finally {
-                propagarEquipoASelectores();
+                console.warn("Fallo de red, manteniendo la lista por defecto", e); 
             }
         }
 
@@ -324,6 +377,7 @@
             });
         }
 
+        // --- MODAL DE EQUIPO ---
         const modalEquipo = document.getElementById('modal-equipo');
         const uiListaEquipo = document.getElementById('ui-lista-equipo');
         let equipoTemporalForm = []; 
@@ -374,8 +428,8 @@
                 actualizarConsola("Base de datos de empleados actualizada.", "success");
                 modalEquipo.style.display = 'none';
             } catch(e) { 
-                console.error("Error exacto en guardado:", e); 
-                actualizarConsola("Error al guardar equipo", "error"); 
+                console.error("Error al guardar:", e); 
+                actualizarConsola("Error al guardar equipo (Revisa tu red)", "error"); 
             }
             document.getElementById('btn-guardar-equipo').textContent = "Guardar en la Nube";
         };
@@ -386,12 +440,14 @@
         let capaMarcadoresHistorial = L.featureGroup().addTo(map);
         let capaMarcadoresEnVivo = L.featureGroup().addTo(map);
 
-        // BLINDAJE TRY...CATCH PARA EVITAR QUE UN REGISTRO CORRUPTO ROMPA LA TABLA
+        // --- SISTEMA BLINDADO TRY/CATCH PARA LECTURA DE DATOS ---
         async function cargarDatosYMapa() {
-            if (!firebaseUser) return;
+            if (!firebaseUser) return actualizarConsola("Debes esperar a que conecte a Firebase", "error");
+            
             const inicio = document.getElementById('f-inicio').value;
             const fin = document.getElementById('f-fin').value;
             const filtroDomi = document.getElementById('f-domi').value;
+            
             if (!inicio || !fin) return;
 
             actualizarConsola("Consultando registros...", "loading");
@@ -469,7 +525,7 @@
                             }
                         }
                     } catch (errorFila) {
-                        console.error("Registro corrupto omitido:", docSnapshot.id);
+                        console.error("Registro omitido por corrupción de datos:", docSnapshot.id);
                         erroresDetectados++;
                     }
                 });
@@ -497,7 +553,7 @@
                     document.getElementById('p-garantia').textContent = `$${sumGarantia.toLocaleString()}`;
 
                     if (erroresDetectados > 0) {
-                        actualizarConsola(`Éxito. Se omitieron ${erroresDetectados} registros corruptos.`, "success");
+                        actualizarConsola(`Exito. (Se omitieron ${erroresDetectados} registros dañados).`, "success");
                     } else {
                         actualizarConsola(`Datos descargados: ${datosCargados.length} pedidos.`, "success");
                     }
@@ -601,7 +657,7 @@
             } catch(e) { actualizarConsola("Error borrando", "error"); }
         }
 
-        // --- FUNCIONES MATEMÁTICAS GEOLOCALIZADAS (HAVERSINE) ---
+        // --- SISTEMA DE TARIFAS POR GPS ---
         function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
             if (!lat1 || !lon1 || !lat2 || !lon2) return null;
             const R = 6371; 
@@ -617,11 +673,8 @@
         function calcularTarifaDomicilio(latDestino, lngDestino) {
             const LAT_ORIGEN = 3.4516; 
             const LNG_ORIGEN = -76.5320; 
-
             const distancia = calcularDistanciaKm(LAT_ORIGEN, LNG_ORIGEN, latDestino, lngDestino);
-            
             if (distancia === null) return 0;
-
             let tarifaBase = 3000;
             if (distancia > 3) {
                 const kmExtra = Math.ceil(distancia - 3);
@@ -662,9 +715,7 @@
 
                 if (!analiticaDomi[dName].dias[fecha]) {
                     analiticaDomi[dName].dias[fecha] = { 
-                        min: tMs, 
-                        max: tMs,
-                        horaInicioReal: item.horaInicioTurno || null 
+                        min: tMs, max: tMs, horaInicioReal: item.horaInicioTurno || null 
                     };
                 } else {
                     if (tMs < analiticaDomi[dName].dias[fecha].min) analiticaDomi[dName].dias[fecha].min = tMs;
@@ -702,7 +753,6 @@
                         ]);
                     });
 
-                    // Fórmula referenciando la columna S
                     resumenHeaders.push([
                         dName, turnos, horasTotalesDomi.toFixed(2), turnos * 50000, 
                         { t: 'n', f: `SUMIF(Detalle!B:B, A${rowIndex}, Detalle!S:S)` }, 
