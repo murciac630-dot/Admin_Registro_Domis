@@ -115,6 +115,7 @@
 </head>
 <body>
 
+    <!-- PANTALLA DE CREDENCIALES (LOGIN) -->
     <div class="auth-overlay" id="auth-screen">
         <div class="auth-box">
             <div class="auth-logo">Ferco<span>Farma</span></div>
@@ -128,6 +129,7 @@
         </div>
     </div>
 
+    <!-- CONTENEDOR PRINCIPAL DE LA APP -->
     <div class="app-layout" id="app-layout">
         <div class="sidebar">
             <div class="sidebar-header">
@@ -162,7 +164,8 @@
 
                 <label>Filtrar Domiciliario</label>
                 <select id="f-domi">
-                    </select>
+                    <!-- Se llena dinámicamente -->
+                </select>
                 
                 <button class="btn btn-primary" id="btn-cargar-datos">Buscar y Procesar</button>
             </div>
@@ -205,7 +208,10 @@
                 </div>
             </div>
         </div>
-    </div> <div class="modal-overlay" id="modal-equipo">
+    </div>
+
+    <!-- MODAL DE GESTIÓN DE EQUIPO -->
+    <div class="modal-overlay" id="modal-equipo">
         <div class="modal-content">
             <div class="group-title">Ajustes de Personal (Base de Datos Central)</div>
             <p style="font-size:12px; color:var(--c-muted); margin-bottom:16px; line-height:1.4;">
@@ -224,6 +230,7 @@
         </div>
     </div>
 
+    <!-- MODAL DE EDICIÓN DE ENTREGAS -->
     <div class="modal-overlay" id="modal-registro">
         <div class="modal-content">
             <div class="group-title" id="modal-titulo">Modificar Registro</div>
@@ -274,8 +281,6 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
         import { getFirestore, collection, getDocs, doc, addDoc, updateDoc, deleteDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-        // === CONFIGURACIÓN DE SEGURIDAD ===
-        // Aquí puedes cambiar la contraseña para acceder al panel.
         const PASSWORD_ADMIN = "Ferco2026"; 
 
         const firebaseConfig = {
@@ -303,20 +308,14 @@
             consola.className = `console-box ${clase}`;
         }
 
-        // --- SISTEMA DE LOGIN Y ARRANQUE (UI LOCK) ---
         document.getElementById('btn-login').onclick = () => {
             const passValue = document.getElementById('input-password').value;
             const errorMsg = document.getElementById('auth-error-msg');
             
             if (passValue === PASSWORD_ADMIN) {
-                // Contraseña correcta: Oculta el login y muestra la app
                 document.getElementById('auth-screen').style.display = 'none';
                 document.getElementById('app-layout').style.display = 'flex';
-                
-                // Forzar pintado inmediato de la lista de emergencia antes de ir a Firebase
                 propagarEquipoASelectores(); 
-                
-                // Ahora sí, conectamos a Firebase (Ahorro de recursos)
                 iniciarConexionFirebase();
             } else {
                 errorMsg.style.display = 'block';
@@ -345,8 +344,10 @@
         function establecerFechasPorDefecto() {
             const hoy = new Date();
             const haceUnaSemana = new Date(hoy.getTime() - (7 * 24 * 60 * 60 * 1000));
-            document.getElementById('f-fin').value = hoy.toISOString().split('T')[0];
-            document.getElementById('f-inicio').value = haceUnaSemana.toISOString().split('T')[0];
+            
+            // Forzamos el input date al huso horario local
+            document.getElementById('f-fin').value = hoy.getFullYear() + "-" + String(hoy.getMonth() + 1).padStart(2, '0') + "-" + String(hoy.getDate()).padStart(2, '0');
+            document.getElementById('f-inicio').value = haceUnaSemana.getFullYear() + "-" + String(haceUnaSemana.getMonth() + 1).padStart(2, '0') + "-" + String(haceUnaSemana.getDate()).padStart(2, '0');
         }
 
         async function descargarEquipoConfig() {
@@ -355,7 +356,7 @@
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
                     equipoDinamico = docSnap.data().miembros || equipoDinamico;
-                    propagarEquipoASelectores(); // Repinta con los datos reales de la nube
+                    propagarEquipoASelectores();
                 } else {
                     try { await setDoc(docRef, { miembros: equipoDinamico }); } catch(innerE) { console.warn(innerE); }
                 }
@@ -377,7 +378,6 @@
             });
         }
 
-        // --- MODAL DE EQUIPO ---
         const modalEquipo = document.getElementById('modal-equipo');
         const uiListaEquipo = document.getElementById('ui-lista-equipo');
         let equipoTemporalForm = []; 
@@ -434,13 +434,11 @@
             document.getElementById('btn-guardar-equipo').textContent = "Guardar en la Nube";
         };
 
-
         const map = L.map('map').setView([3.4516, -76.5320], 13);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CartoDB' }).addTo(map);
         let capaMarcadoresHistorial = L.featureGroup().addTo(map);
         let capaMarcadoresEnVivo = L.featureGroup().addTo(map);
 
-        // --- SISTEMA BLINDADO TRY/CATCH PARA LECTURA DE DATOS ---
         async function cargarDatosYMapa() {
             if (!firebaseUser) return actualizarConsola("Debes esperar a que conecte a Firebase", "error");
             
@@ -470,7 +468,14 @@
                         d.id = docSnapshot.id; 
                         if (!d.timestamp) return;
                         
-                        const fechaPedido = d.timestamp.split('T')[0];
+                        // CORRECCIÓN MAGISTRAL: Conversión de UTC a Hora Local de Cali
+                        const dateObj = new Date(d.timestamp);
+                        const year = dateObj.getFullYear();
+                        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                        const day = String(dateObj.getDate()).padStart(2, '0');
+                        
+                        const fechaPedido = `${year}-${month}-${day}`;
+                        const horaPedido = dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
                         let dName = d.domiciliario || 'N/A';
                         if (dName === "David Losada") dName = "David";
@@ -478,6 +483,9 @@
                         if (fechaPedido >= inicio && fechaPedido <= fin) {
                             if (filtroDomi !== "TODOS" && dName !== filtroDomi) return;
                             d.domiciliario = dName;
+                            
+                            // Guardamos la fecha convertida en el objeto para que el Excel la use igual
+                            d.fechaLocal = fechaPedido;
                             datosCargados.push(d);
 
                             totalRecaudado += Number(d.valorPagado) || 0;
@@ -506,7 +514,7 @@
                             filasHTML += `
                             <tr>
                                 <td class="td-mono">${fechaPedido}</td>
-                                <td class="td-mono">${new Date(d.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                                <td class="td-mono">${horaPedido}</td>
                                 <td><strong>${dName}</strong></td>
                                 <td>${empresaBadge}</td>
                                 <td>${d.cliente || 'Anónimo'}</td>
@@ -657,7 +665,6 @@
             } catch(e) { actualizarConsola("Error borrando", "error"); }
         }
 
-        // --- SISTEMA DE TARIFAS POR GPS ---
         function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
             if (!lat1 || !lon1 || !lat2 || !lon2) return null;
             const R = 6371; 
@@ -710,7 +717,7 @@
                 const dName = item.domiciliario;
                 if (!equipoDinamico.includes(dName)) return;
 
-                const fecha = item.timestamp.split('T')[0];
+                const fecha = item.fechaLocal; // Usar la fecha convertida localmente
                 const tMs = new Date(item.timestamp).getTime();
 
                 if (!analiticaDomi[dName].dias[fecha]) {
@@ -786,7 +793,8 @@
                 }
                 
                 const fExcel = 2 + index; 
-                const horaStr = new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const dateObj = new Date(item.timestamp);
+                const horaStr = dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 const latStr = item.lat ? item.lat.toString() : "";
                 const lngStr = item.lng ? item.lng.toString() : "";
                 const pagoStatus = item.pago === 'si' ? 'SÍ' : 'NO';
@@ -795,7 +803,7 @@
 
                 detalleHeaders.push([ 
                     item.id, item.domiciliario || 'N/A', item.cliente || 'N/A', item.empresa || 'Ferco Farma', item.ubicacion || 'N/A',
-                    latStr, lngStr, item.timestamp.split('T')[0], horaStr, pagoStatus,
+                    latStr, lngStr, item.fechaLocal, horaStr, pagoStatus,
                     item.valorPagado || 0, ef, tr, dt, cod, cr, gr, nota, 
                     tarifaCalculada, 
                     { t: 'n', f: `K${fExcel}+S${fExcel}` } 
