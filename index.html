@@ -696,14 +696,12 @@
             }
         }
 
-        // --- GENERADOR DE EXCEL CON DESGLOSE FERCO/HADES ---
         function exportarExcelNomina() {
             if (datosCargados.length === 0) return actualizarConsola("No hay datos para exportar.", "error");
             
             const inicio = document.getElementById('f-inicio').value;
             const fin = document.getElementById('f-fin').value;
             
-            // 1. NUEVOS HEADERS DEL RESUMEN:
             const resumenHeaders = [
                 ["Reporte Consolidado de Nómina Ferco Farma"],
                 [`Rango: ${inicio} al ${fin}`],
@@ -768,7 +766,6 @@
                         ]);
                     });
 
-                    // 2. FÓRMULAS SUMIFS y COUNTIFS INCORPORADAS
                     resumenHeaders.push([
                         dName, 
                         turnos, 
@@ -785,13 +782,14 @@
                 }
             });
 
+            // CORRECCIÓN CONTABLE: Columna T ahora calcula el Ingreso Neto de la Empresa (Recaudo - Domicilio)
             const detalleHeaders = [
                 [
                     "ID Registro", "Domiciliario", "Cliente", "Empresa", "Ubicación (Dirección)", 
                     "Latitud (GPS)", "Longitud (GPS)", "Fecha", "Hora del Pedido", 
                     "¿Pagó?", "Total Recaudado ($)", "Efectivo ($)", "Transferencia ($)", 
                     "Datáfono ($)", "Código Datáfono", "Crédito ($)", "Artículo/Garantía ($)", 
-                    "Descripción del Artículo", "Valor por Domicilio (Auto GPS $)", "Total Fila ($)"
+                    "Descripción del Artículo", "Valor por Domicilio (Auto GPS $)", "Ingreso Neto Empresa ($)"
                 ]
             ];
             
@@ -818,12 +816,13 @@
                 
                 const tarifaCalculada = calcularTarifaDomicilio(item.lat, item.lng);
 
+                // EXCEL: K (Total Recaudado) menos S (Valor Domicilio)
                 detalleHeaders.push([ 
                     item.id, item.domiciliario || 'N/A', item.cliente || 'N/A', item.empresa || 'Ferco Farma', item.ubicacion || 'N/A',
                     latStr, lngStr, item.fechaLocal, horaStr, pagoStatus,
                     item.valorPagado || 0, ef, tr, dt, cod, cr, gr, nota, 
                     tarifaCalculada, 
-                    { t: 'n', f: `K${fExcel}+S${fExcel}` } 
+                    { t: 'n', f: `K${fExcel}-S${fExcel}` } 
                 ]);
             });
 
