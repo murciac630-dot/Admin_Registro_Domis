@@ -304,7 +304,6 @@
         const consola = document.getElementById('consola-status');
         const listadoCuerpo = document.getElementById('tbody-entregas');
         
-        // Inicializamos el mapa desde el inicio
         const map = L.map('map').setView([3.4516, -76.5320], 13);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CartoDB' }).addTo(map);
         let capaMarcadoresHistorial = L.featureGroup().addTo(map);
@@ -321,19 +320,12 @@
             const errorMsg = document.getElementById('auth-error-msg');
             
             if (passValue === PASSWORD_ADMIN) {
-                // Contraseña correcta: Oculta el login y muestra la app
                 document.getElementById('auth-screen').style.display = 'none';
                 document.getElementById('app-layout').style.display = 'flex';
                 
-                // CORRECCIÓN DEL MAPA: Forzamos el recálculo
-                setTimeout(() => {
-                    map.invalidateSize();
-                }, 200);
+                setTimeout(() => { map.invalidateSize(); }, 200);
                 
-                // Forzar pintado inmediato de la lista de emergencia antes de ir a Firebase
                 propagarEquipoASelectores(); 
-                
-                // Ahora sí, conectamos a Firebase
                 iniciarConexionFirebase();
             } else {
                 errorMsg.style.display = 'block';
@@ -395,7 +387,6 @@
             });
         }
 
-        // --- MODAL DE EQUIPO ---
         const modalEquipo = document.getElementById('modal-equipo');
         const uiListaEquipo = document.getElementById('ui-lista-equipo');
         let equipoTemporalForm = []; 
@@ -453,7 +444,6 @@
         };
 
 
-        // --- SISTEMA BLINDADO TRY/CATCH PARA LECTURA DE DATOS ---
         async function cargarDatosYMapa() {
             if (!firebaseUser) return actualizarConsola("Debes esperar a que conecte a Firebase", "error");
             
@@ -678,7 +668,7 @@
             } catch(e) { actualizarConsola("Error borrando", "error"); }
         }
 
-        // --- SISTEMA DE TARIFAS PLANAS POR GPS (NUEVO ALGORITMO) ---
+        // --- SISTEMA DE TARIFAS PLANAS POR GPS ---
         function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
             if (!lat1 || !lon1 || !lat2 || !lon2) return null;
             const R = 6371; 
@@ -692,18 +682,13 @@
         }
 
         function calcularTarifaDomicilio(latDestino, lngDestino) {
-            // 1. Coordenadas de la sede origen
             const LAT_ORIGEN = 3.4516; 
             const LNG_ORIGEN = -76.5320; 
             
-            // 2. Calculamos distancia
             const distancia = calcularDistanciaKm(LAT_ORIGEN, LNG_ORIGEN, latDestino, lngDestino);
             if (distancia === null) return 0;
             
-            // 3. Establecemos la frontera de distancia
             const LIMITE_KM = 3;
-            
-            // 4. Lógica de control para tarifas planas
             if (distancia <= LIMITE_KM) {
                 return 10000;
             } else {
@@ -711,17 +696,19 @@
             }
         }
 
+        // --- GENERADOR DE EXCEL CON DESGLOSE FERCO/HADES ---
         function exportarExcelNomina() {
             if (datosCargados.length === 0) return actualizarConsola("No hay datos para exportar.", "error");
             
             const inicio = document.getElementById('f-inicio').value;
             const fin = document.getElementById('f-fin').value;
             
+            // 1. NUEVOS HEADERS DEL RESUMEN:
             const resumenHeaders = [
                 ["Reporte Consolidado de Nómina Ferco Farma"],
                 [`Rango: ${inicio} al ${fin}`],
                 [],
-                ["Domiciliario", "Turnos Trabajados", "Horas Estimadas", "Pago Base Turnos ($)", "Valor Entregas Calculado GPS ($)", "Total Neto ($)"]
+                ["Domiciliario", "Turnos Trabajados", "Horas Estimadas", "Pago Base Turnos ($)", "Entregas Ferco", "Total Ferco ($)", "Entregas Hades", "Total Hades ($)", "Total Domicilios ($)", "Gran Total Neto ($)"]
             ];
 
             const tiemposHeaders = [
@@ -781,10 +768,18 @@
                         ]);
                     });
 
+                    // 2. FÓRMULAS SUMIFS y COUNTIFS INCORPORADAS
                     resumenHeaders.push([
-                        dName, turnos, horasTotalesDomi.toFixed(2), turnos * 50000, 
-                        { t: 'n', f: `SUMIF(Detalle!B:B, A${rowIndex}, Detalle!S:S)` }, 
-                        { t: 'n', f: `D${rowIndex}+E${rowIndex}` } 
+                        dName, 
+                        turnos, 
+                        horasTotalesDomi.toFixed(2), 
+                        turnos * 50000, 
+                        { t: 'n', f: `COUNTIFS(Detalle!B:B, A${rowIndex}, Detalle!D:D, "Ferco Farma")` },
+                        { t: 'n', f: `SUMIFS(Detalle!S:S, Detalle!B:B, A${rowIndex}, Detalle!D:D, "Ferco Farma")` }, 
+                        { t: 'n', f: `COUNTIFS(Detalle!B:B, A${rowIndex}, Detalle!D:D, "Hades")` },
+                        { t: 'n', f: `SUMIFS(Detalle!S:S, Detalle!B:B, A${rowIndex}, Detalle!D:D, "Hades")` },
+                        { t: 'n', f: `F${rowIndex}+H${rowIndex}` }, 
+                        { t: 'n', f: `D${rowIndex}+I${rowIndex}` }  
                     ]);
                     rowIndex++;
                 }
@@ -802,14 +797,15 @@
             
             datosCargados.forEach((item, index) => {
                 let ef=0, tr=0, dt=0, cr=0, gr=0, cod="", nota="";
+                
                 if(item.pagosDesglosados){
                     item.pagosDesglosados.forEach(p => {
                         const m = p.medio.toLowerCase();
                         if(m.includes('efectivo')) ef=p.valor; 
                         else if(m.includes('transf')) tr=p.valor; 
-                        else if(m.includes('data')) { dt=p.valor; cod=p.codigoAprobacion||""; }
-                        else if(m.includes('cred')) cr=p.valor; 
-                        else if(m.includes('garant')||m.includes('cruce')||m.includes('equivalente')) { gr=p.valor; nota=p.notaGarantia||""; }
+                        else if(m.includes('datáfono') || m.includes('datafono')) { dt=p.valor; cod=p.codigoAprobacion||""; }
+                        else if(m.includes('crédito') || m.includes('credito')) cr=p.valor; 
+                        else if(m.includes('garantía') || m.includes('garantia') || m.includes('cruce') || m.includes('equivalente')) { gr=p.valor; nota=p.notaGarantia||""; }
                     });
                 }
                 
